@@ -1,6 +1,7 @@
+import re
+
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
-from django.contrib.auth.password_validation import validate_password
 
 from users.models import User
 
@@ -30,6 +31,8 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     Валидация:
     - Проверка совпадения полей `password` и `confirm_password`.
+    - Проверка наличия хотя бы одной большой буквы, одной маленькой буквы и одной цифры в пароле.
+    - Пароль должен содержать как минимум 6 символов.
 
     Создание пользователя:
     - Удаление `confirm_password` из `validated_data`.
@@ -42,7 +45,6 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         write_only=True,
         required=True,
-        validators=[validate_password]
     )
     confirm_password = serializers.CharField(write_only=True, required=True)
 
@@ -54,11 +56,22 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         }
 
     def validate(self, attrs):
-        """
-        Проверка совпадения полей пароля.
-        """
         if attrs['password'] != attrs['confirm_password']:
             raise serializers.ValidationError({"password": "Password fields didn't match."})
+
+        errors = []
+
+        if len(attrs['password']) < 6:
+            errors.append('The password must contain at least 6 characters')
+        if not re.search(r'[A-Z]', attrs['password']):
+            errors.append('The password must contain at least one uppercase letter')
+        if not re.search(r'[a-z]', attrs['password']):
+            errors.append('The password must contain at least one lowercase letter')
+        if not re.search(r'\d', attrs['password']):
+            errors.append('The password must contain at least one digit')
+
+        if errors:
+            raise serializers.ValidationError({'password': errors})
         return attrs
 
     def create(self, validated_data):
