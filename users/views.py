@@ -1,10 +1,12 @@
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from users.models import User
-from users.serializers import UserLoginSerializer
+from users.serializers import  UserLoginSerializer
 
 
 class UserLoginAPIView(APIView):
@@ -47,3 +49,43 @@ class UserLoginAPIView(APIView):
             'refresh': str(tokens),
             'access': str(tokens.access_token),
         }, status=status.HTTP_200_OK)
+
+
+class UserLogoutAPIView(APIView):
+    """
+    API view для выхода пользователя из аккаунта.
+
+    Пользователь должен быть аутентифицирован и передать действительный refresh_token 
+    для аннулирования токена доступа.
+
+    Принимает POST запрос с данными в формате:
+    {
+        'refresh_token': 'refresh token пользователя'
+    }
+
+    HTTP коды ответа:
+    - 200 OK: Токен успешно аннулирован, пользователь вышел из аккаунта.
+    - 400 Bad Request: Ошибка в запросе, не удалось аннулировать токен.
+    - 401 Unauthorized: Пользователь не аутентифицирован.
+    """
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        """
+        Обработка POST запроса для выхода пользователя из аккаунта.
+        """
+        try:
+            refresh_token = request.data['refresh_token']
+        except KeyError:
+            refresh_token = None
+
+        if refresh_token:
+            try:
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+            except Exception as e:
+                return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response({'detail': 'Вы успешно вышли из аккаунта.'}, status=status.HTTP_200_OK)
