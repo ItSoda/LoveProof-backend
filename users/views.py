@@ -6,7 +6,34 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from users.models import User
-from users.serializers import  UserLoginSerializer
+from users.serializers import UserRegistrationSerializer, UserLoginSerializer
+
+
+class UserRegistrationView(APIView):
+    """
+    API view для регистрации нового пользователя.
+
+    Принимает POST запрос с данными в формате:
+    {
+        "username": "имя_пользователя",
+        "email": "адрес_электронной_почты",
+        "gender": "пол_пользователя",
+        "password": "пароль",
+        "confirm_password": "подтверждение_пароля"
+    }
+
+    HTTP коды ответа:
+    - 201 Created: Пользователь успешно зарегистрирован.
+    - 400 Bad Request: Ошибка в запросе или неверные данные для регистрации.
+    """
+    serializer_class = UserRegistrationSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserLoginAPIView(APIView):
