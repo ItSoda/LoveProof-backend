@@ -1,3 +1,6 @@
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode
+from django.contrib.auth.tokens import default_token_generator
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -6,7 +9,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from users.models import User
-from users.serializers import UserRegistrationSerializer, UserLoginSerializer
+from users.serializers import UserRegistrationSerializer, UserLoginSerializer, UserProfileUpdateSerializer, UserDeleteSerializer
 
 
 class UserRegistrationView(APIView):
@@ -116,3 +119,32 @@ class UserLogoutAPIView(APIView):
                 return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
         return Response({'detail': 'Вы успешно вышли из аккаунта.'}, status=status.HTTP_200_OK)
+
+
+class VerifyEmailAPIView(APIView):
+    """
+    API view для подтверждения email пользователя.
+
+    Проверяет токен подтверждения email и устанавливает статус подтверждения для пользователя.
+
+    Параметры запроса:
+    - uidb64: Base64 кодированный идентификатор пользователя.
+    - token: Токен подтверждения email.
+
+    HTTP коды ответа:
+    - HTTP 200 OK: Email успешно подтвержден.
+    - HTTP 400 Bad Request: Недействительный токен или URL.
+    """
+    def get(self, request, uidb64, token):
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+            if default_token_generator.check_token(user, token):
+                user.email_confirmed = True
+                user.is_active = True
+                user.save()
+                return Response({'detail': 'Email успешно подтвержден.'}, status=status.HTTP_200_OK)
+            else:
+                return Response({'detail': 'Недействительный токен для подтверждения email.'}, status=status.HTTP_400_BAD_REQUEST)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return Response({'detail': 'Недействительный URL для подтверждения email.'}, status=status.HTTP_400_BAD_REQUEST)
