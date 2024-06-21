@@ -1,7 +1,7 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 
-from users.views import UserRegistrationView, UserLoginAPIView, UserLogoutAPIView
+from users.views import UserRegistrationView, UserLoginAPIView, UserLogoutAPIView, VerifyEmailAPIView
 
 
 urlpatterns = [
@@ -9,4 +9,5 @@ urlpatterns = [
     path('api/register/', UserRegistrationView.as_view(), name='register'),
     path('api/login/', UserLoginAPIView.as_view(), name='login'),
     path('api/logout/', UserLogoutAPIView.as_view(), name='logout'),
+    path('verify-email/<str:uidb64>/<str:token>/', VerifyEmailAPIView.as_view(), name='verify-email')
 ]
