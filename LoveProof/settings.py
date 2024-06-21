@@ -102,3 +102,17 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=10),
 }
+
+AUTH_USER_MODEL = 'users.User'
+
+EMAIL_DICT = {
+    1: 'email_1',
+    2: 'email_2',
+    3: 'email_3'
+}
+
+EMAIL_HOST_USER = EMAIL_DICT.get(randint(1, 3))
+
+ELASTIC_EMAIL_API_KEY = ''
+
+URL_SEND = 'https://api.elasticemail.com/v2/email/send'
