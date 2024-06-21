@@ -2,6 +2,12 @@ import re
 
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
+from django.conf import settings
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
+
+import requests
 
 from users.models import User
 
@@ -37,6 +43,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     Создание пользователя:
     - Удаление `confirm_password` из `validated_data`.
     - Создание пользователя с использованием `create_user` метода модели `User`.
+    - Отправка письма с подтверждением на указанный адрес электронной почты после успешной регистрации.
     """
     email = serializers.EmailField(
         required=True,
@@ -80,4 +87,33 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             **validated_data,
             is_active = False
         )
+        self._send_email_verification(user)
         return user
+
+    def _send_email_verification(self, user):
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        verification_url = f'http://yourdomain.com/verify-email/{uid}/{token}/'
+        subject = 'Подтвердите ваш email'
+        message = f'Для подтверждения вашего email перейдите по ссылке: {verification_url}'
+
+        url = settings.URL_SEND
+        api_key = settings.ELASTIC_EMAIL_API_KEY  # Подставьте ваш API ключ
+        from_email = settings.EMAIL_HOST_USER  # Подставьте ваш email, от которого будет отправляться письмо
+
+        data = {
+            'apikey': api_key,
+            'from': from_email,
+            'to': user.email,
+            'subject': subject,
+            'bodyHtml': message,
+            'bodyText': message,
+        }
+
+        response = requests.post(url, data=data)
+        response_json = response.json()
+
+        if response_json['success']:
+            return True
+        else:
+            raise serializers.ValidationError({'email': 'Failed to send verification email'})
