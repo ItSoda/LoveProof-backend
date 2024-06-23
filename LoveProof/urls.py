@@ -9,5 +9,5 @@ urlpatterns = [
     path('api/register/', UserRegistrationView.as_view(), name='register'),
     path('api/login/', UserLoginAPIView.as_view(), name='login'),
     path('api/logout/', UserLogoutAPIView.as_view(), name='logout'),
-    path('verify-email/<str:uidb64>/<str:token>/', VerifyEmailAPIView.as_view(), name='verify-email')
+    path('verify-email/', VerifyEmailAPIView.as_view(), name='email_verify')
 ]
