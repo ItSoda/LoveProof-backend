@@ -12,6 +12,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+DOMAIN_NAME = env('DOMAIN_NAME')
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -116,3 +118,6 @@ EMAIL_HOST_USER = EMAIL_DICT.get(randint(1, 3))
 ELASTIC_EMAIL_API_KEY = ''
 
 URL_SEND = 'https://api.elasticemail.com/v2/email/send'
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
