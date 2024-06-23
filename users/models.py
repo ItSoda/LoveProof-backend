@@ -1,6 +1,14 @@
+from datetime import timedelta
+import uuid
+
 from django.db import models
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
+from django.urls import reverse
+from django.utils.timezone import now
+
+from users.tasks import send_email
 
 
 class User(AbstractUser):
@@ -33,9 +41,84 @@ class User(AbstractUser):
     def __str__(self) -> str:
         return self.username
 
+    def save(self, *args, **kwargs):
+        """
+        Сохраняет объект пользователя.
+
+        Перед сохранением проверяет, является ли объект новым.
+        После успешного сохранения инициирует отправку email с запросом на подтверждение
+        адреса электронной почты, если пользователь только что зарегистрирован.
+        """
+        created = not self.pk 
+        super().save(*args, **kwargs)
+
+        if created:
+            self._send_email_verification()
+
+    def _send_email_verification(self):
+        """
+        Создает объект EmailVerification для текущего пользователя.
+
+        Отправляет email с запросом на подтверждение адреса электронной почты.
+        """
+        expiration = now() + timedelta(hours=24)
+        email_verification = EmailVerification.objects.create(code=uuid.uuid4(), user=self, expiration=expiration)
+        email_verification.send_verification_email()
+
 
 class Tag(models.Model):
     title = models.CharField(max_length=15, verbose_name='Название')
 
     def __str__(self) -> str:
         return self.title
+
+
+class EmailVerification(models.Model):
+    """
+    Модель для хранения кодов подтверждения email пользователей.
+
+    Атрибуты:
+    - code: UUIDField, уникальный идентификатор кода подтверждения.
+    - user: ForeignKey, связь с моделью User, для которой создан код подтверждения.
+    - created: DateTimeField, дата и время создания записи.
+    - expiration: DateTimeField, дата и время истечения срока действия кода.
+
+    Методы:
+    - send_verification_email: Отправляет email для подтверждения адреса электронной почты пользователю.
+    - is_expired: Проверяет, истек ли срок действия кода подтверждения.
+
+    Связи:
+    - User: Модель пользователя, для которой создаются коды подтверждения email.
+    """
+    code = models.UUIDField(unique=True)
+    user = models.ForeignKey(to=User, related_name='email_verifications', on_delete=models.CASCADE)
+    created = models.DateTimeField(auto_now_add=True)
+    expiration = models.DateTimeField()
+
+    def __str__(self):
+        return f'Email verification for {self.user.email}'
+
+    def send_verification_email(self):
+        """
+        Отправляет email для подтверждения адреса электронной почты.
+        """
+        link = reverse('email_verify', kwargs={'email': self.user.email, 'code': self.code})
+        verification_url = f'{settings.DOMAIN_NAME}{link}'
+        subjects = f'Пожалуйста, подтвердите свой адрес электронной почты'
+        message = f'Для завершения регистрации, подтвердите свой адрес электронной почты, перейдите по ссылке: {verification_url}'
+
+        send_email.delay(
+            subject=subjects,
+            message=message,
+            to_email=self.user.email,
+        )
+
+    def is_expired(self):
+        """
+        Проверяет, истек ли срок действия кода подтверждения.
+
+        Возвращает:
+        - True, если срок действия истек.
+        - False, если срок действия еще не истек.
+        """
+        return True if now() >= self.expiration else False
