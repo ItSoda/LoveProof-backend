@@ -1,6 +1,4 @@
-from django.utils.encoding import force_str
-from django.utils.http import urlsafe_base64_decode
-from django.contrib.auth.tokens import default_token_generator
+from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -8,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from users.models import User
+from users.models import User, EmailVerification
 from users.serializers import UserRegistrationSerializer, UserLoginSerializer, UserProfileUpdateSerializer, UserDeleteSerializer
 
 
@@ -126,25 +124,39 @@ class VerifyEmailAPIView(APIView):
     API view для подтверждения email пользователя.
 
     Проверяет токен подтверждения email и устанавливает статус подтверждения для пользователя.
+    При успешном подтверждении email пользователь становится активным (is_active=True) и его email_confirmed
+    устанавливается в True
 
     Параметры запроса:
-    - uidb64: Base64 кодированный идентификатор пользователя.
-    - token: Токен подтверждения email.
+    - code: UUID код подтверждения, связанный с email пользователя.
+    - email: Email адрес пользователя, для которого выполняется подтверждение.
 
     HTTP коды ответа:
     - HTTP 200 OK: Email успешно подтвержден.
     - HTTP 400 Bad Request: Недействительный токен или URL.
+    
+    Связанные модели:
+    - User: Модель пользователя, в которой хранится информация о подтверждении email.
+    - EmailVerification: Модель для хранения кодов подтверждения email пользователей.
     """
-    def get(self, request, uidb64, token):
+    def get(self, request, *args, **kwargs):
+        """
+        Обработка GET-запросов для подтверждения email пользователя на основе предоставленного кода и email.
+
+        Извлекает пользователя на основе предоставленного email и проверяет токен подтверждения email (code).
+        При действительном и неистекшем токене устанавливает email_confirmed пользователя в True и активирует его.
+        """
+        code = request.GET.get('code')
+        email = request.GET.get('email')
+        user = get_object_or_404(User, email=email)
+        email_verifications = EmailVerification.objects.filter(code=code, user=user)
         try:
-            uid = force_str(urlsafe_base64_decode(uidb64))
-            user = User.objects.get(pk=uid)
-            if default_token_generator.check_token(user, token):
+            if email_verifications.exists() and not email_verifications.last().is_expired():
                 user.email_confirmed = True
                 user.is_active = True
                 user.save()
                 return Response({'detail': 'Email успешно подтвержден.'}, status=status.HTTP_200_OK)
             else:
-                return Response({'detail': 'Недействительный токен для подтверждения email.'}, status=status.HTTP_400_BAD_REQUEST)
-        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+                return Response({'detail': 'Токен для подтверждения email истек или не существует.'}, status=status.HTTP_400_BAD_REQUEST)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist, EmailVerification.DoesNotExist):
             return Response({'detail': 'Недействительный URL для подтверждения email.'}, status=status.HTTP_400_BAD_REQUEST)
