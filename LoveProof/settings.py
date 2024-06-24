@@ -2,15 +2,20 @@ from random import randint
 from datetime import timedelta
 from pathlib import Path
 
+import environ
+
+
+env = environ.Env()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+environ.Env.read_env(BASE_DIR / '.env.development')
 
 SECRET_KEY = 'django-insecure-%t014@&tz%r9q46uvmst*0kg#!yry=@en(g_5ar44$lwpx901p'
 
-DEBUG = True
+DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS')
 
 DOMAIN_NAME = env('DOMAIN_NAME')
 
@@ -58,12 +63,26 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'LoveProof.wsgi.application'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+if DEBUG:
+    # Для разработки
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
+else:
+    # Для продакшн
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': env('DATABASES_NAME'),
+            'USER': env('DATABASES_USER'),
+            'PASSWORD': env('DATABASES_PASSWORD'),
+            'HOST': env('DATABASES_HOST'),
+            'PORT': env('DATABASES_PORT'),
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -107,17 +126,23 @@ SIMPLE_JWT = {
 
 AUTH_USER_MODEL = 'users.User'
 
-EMAIL_DICT = {
-    1: 'email_1',
-    2: 'email_2',
-    3: 'email_3'
+SENDING_EMAIL_DICT = {
+    1: env('EMAIL_SEND_1'),
+    2: env('EMAIL_SEND_2'),
+    3: env('EMAIL_SEND_3'),
 }
 
-EMAIL_HOST_USER = EMAIL_DICT.get(randint(1, 3))
+RECEIVING_EMAIL_DICT = {
+    1: env('EMAIL_TO_1'),
+    2: env('EMAIL_TO_2'),
+    3: env('EMAIL_TO_3'),
+}
 
-ELASTIC_EMAIL_API_KEY = ''
+EMAIL_HOST_USER = SENDING_EMAIL_DICT.get(randint(1, 3))
+
+ELASTIC_EMAIL_API_KEY = env('ELASTIC_EMAIL_API_KEY')
 
 URL_SEND = 'https://api.elasticemail.com/v2/email/send'
 
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_BROKER_URL = env('CELERY_BROKER_URL')
+CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND')
