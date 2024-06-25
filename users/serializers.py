@@ -114,3 +114,11 @@ class CheckerListSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['username', 'photo', 'age', 'price']
+
+
+class CheckerDetailSerializer(serializers.ModelSerializer):
+    tags = serializers.StringRelatedField(many=True)
+
+    class Meta:
+        model = User
+        fields = ('username', 'gender', 'description', 'photo', 'tags', 'price')
