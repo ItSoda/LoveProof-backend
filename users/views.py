@@ -160,3 +160,59 @@ class VerifyEmailAPIView(APIView):
                 return Response({'detail': 'Токен для подтверждения email истек или не существует.'}, status=status.HTTP_400_BAD_REQUEST)
         except (TypeError, ValueError, OverflowError, User.DoesNotExist, EmailVerification.DoesNotExist):
             return Response({'detail': 'Недействительный URL для подтверждения email.'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ProfileAPIView(APIView):
+    """
+    API view для управления профилем пользователя.
+
+    Пользователь должен быть аутентифицирован для доступа к данным профиля.
+
+    Параметры запроса:
+    - PUT:
+        {
+            "username": "имя_пользователя",
+            "email": "адрес_электронной_почты",
+            "gender": "пол_пользователя",
+        }
+    - DELETE:
+        {
+            "password": "пароль"
+        }
+
+    HTTP коды ответа:
+    - GET:
+        - 200 OK: Возвращает данные профиля текущего пользователя.
+    - PUT:
+        - 200 OK: Данные профиля успешно обновлены.
+        - 400 Bad Request: Ошибка в запросе или неверные данные для обновления профиля.
+    - DELETE:
+        - 204 No Content: Аккаунт пользователя удален успешно.
+        - 400 Bad Request: Ошибка в запросе или неверный пароль для удаления аккаунта.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        serializer = UserProfileUpdateSerializer(user)
+        return Response(serializer.data, status.HTTP_200_OK)
+
+    def put(self, request):
+        user = request.user
+        serializer = UserProfileUpdateSerializer(user, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request):
+        serializer = UserDeleteSerializer(data=request.data)
+        if serializer.is_valid():
+            user = request.user
+            password = serializer.validated_data['password']
+
+            if not user.check_password(password):
+                return Response({'password': 'Неправильный пароль'}, status=status.HTTP_400_BAD_REQUEST)
+            user.delete()
+            return Response({'detail': 'Ваш аккаунт был удален'}, status=status.HTTP_204_NO_CONTENT)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
