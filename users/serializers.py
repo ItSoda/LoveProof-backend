@@ -108,3 +108,9 @@ class UserDeleteSerializer(serializers.Serializer):
     - password (str): Пароль пользователя (обязательное поле).
     """
     password = serializers.CharField(write_only=True, required=True)
+
+
+class CheckerListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['username', 'photo', 'age', 'price']
