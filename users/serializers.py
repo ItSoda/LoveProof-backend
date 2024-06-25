@@ -81,3 +81,30 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             is_active = False
         )
         return user
+
+
+class UserProfileUpdateSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для обновления профиля пользователя.
+
+    Поля:
+    - username (str): Имя пользователя.
+    - email (str): Адрес электронной почты пользователя.
+    - gender (str): Пол пользователя.
+
+    Поля:
+    - password (str): Пароль, необходимый для удаления учетной записи пользователя. Является доступным только для записи и обязательным.
+    """
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'gender']
+
+
+class UserDeleteSerializer(serializers.Serializer):
+    """
+    Cериализатор для удаления учетной записи пользователя
+
+    Поля:
+    - password (str): Пароль пользователя (обязательное поле).
+    """
+    password = serializers.CharField(write_only=True, required=True)
