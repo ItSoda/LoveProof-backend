@@ -1,3 +1,5 @@
+from typing import Optional
+
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.response import Response
@@ -7,7 +9,12 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from users.models import User, EmailVerification
-from users.serializers import UserRegistrationSerializer, UserLoginSerializer, UserProfileUpdateSerializer, UserDeleteSerializer
+from users.serializers import (
+    UserRegistrationSerializer, UserLoginSerializer,
+    UserProfileUpdateSerializer, UserDeleteSerializer,
+    CheckerListSerializer
+    )
+from users.services.views_service import get_list_checkers
 
 
 class UserRegistrationView(APIView):
@@ -216,3 +223,23 @@ class ProfileAPIView(APIView):
             user.delete()
             return Response({'detail': 'Ваш аккаунт был удален'}, status=status.HTTP_204_NO_CONTENT)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CheckerListAPIView(APIView):
+    """
+    API view для получения списка пользователей с полем checker.
+
+    Возвращает поля: id, username, photo, age, price.
+
+    HTTP коды ответа:
+    - 200 OK: Успешный запрос
+    - 204 No Content: Пользователи не найдены
+    """
+    def get(self, request):
+        users = get_list_checkers()
+
+        if not users.exists():
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        serializer = CheckerListSerializer(users, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
