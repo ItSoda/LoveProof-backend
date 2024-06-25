@@ -12,9 +12,9 @@ from users.models import User, EmailVerification
 from users.serializers import (
     UserRegistrationSerializer, UserLoginSerializer,
     UserProfileUpdateSerializer, UserDeleteSerializer,
-    CheckerListSerializer
+    CheckerListSerializer, CheckerDetailSerializer
     )
-from users.services.views_service import get_list_checkers
+from users.services.views_service import get_list_checkers, get_checker
 
 
 class UserRegistrationView(APIView):
@@ -243,3 +243,14 @@ class CheckerListAPIView(APIView):
 
         serializer = CheckerListSerializer(users, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class CheckerDetailAPIView(APIView):
+    def get(self, request, username: str):
+        user: Optional[User] = get_checker(username)
+
+        if user:
+            serializer = CheckerDetailSerializer(user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            return Response({"detail": "Пользователь не найден"}, status=status.HTTP_404_NOT_FOUND)
