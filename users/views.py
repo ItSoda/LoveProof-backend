@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
+from django_filters.rest_framework import DjangoFilterBackend
 
 from users.models import User, EmailVerification
 from users.serializers import (
@@ -15,6 +16,7 @@ from users.serializers import (
     CheckerListSerializer, CheckerDetailSerializer
     )
 from users.services.views_service import get_list_checkers, get_checker
+from users.filters import CheckerFilter
 
 
 class UserRegistrationView(APIView):
@@ -227,25 +229,47 @@ class ProfileAPIView(APIView):
 
 class CheckerListAPIView(APIView):
     """
-    API view для получения списка пользователей с полем checker.
+    API view для получения списка пользователей с ролью 'checker',
+    с возможностью фильтрации.
 
-    Возвращает поля: id, username, photo, age, price.
+    Поддерживаемые фильтры:
+    - genders: фильтрация по полу
+    - ethnicities: фильтрация по этнической принадлежности
+    - locations: фильтрация по локации
+    - socials: фильтрация по социальным сетям
+    - ages: фильтрация по возрасту (диапазон)
+
+    Возвращает поля: id, username, photo, age и price.
 
     HTTP коды ответа:
     - 200 OK: Успешный запрос
     - 204 No Content: Пользователи не найдены
     """
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = CheckerFilter
+
     def get(self, request):
-        users = get_list_checkers()
+        queryset = get_list_checkers()
 
-        if not users.exists():
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        if any(request.query_params.values()):  # Проверка фильтрации в запросе
+            filtered_queryset = self.filterset_class(request.query_params, queryset=queryset).qs
+            if not filtered_queryset.exists():
+                return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            filtered_queryset = queryset  # Если нет фильтров, используется исходный queryset
 
-        serializer = CheckerListSerializer(users, many=True)
+        serializer = CheckerListSerializer(filtered_queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class CheckerDetailAPIView(APIView):
+    """
+    API view для получения детальной информации о пользователе 'checker' по его имени пользователя(username).
+
+    HTTP коды ответа:
+    - 200 OK: Успешный запрос
+    - 404 Not Found: Пользователь не найден
+    """
     def get(self, request, username: str):
         user: Optional[User] = get_checker(username)
 
