@@ -147,3 +147,11 @@ URL_SEND = 'https://api.elasticemail.com/v2/email/send'
 
 CELERY_BROKER_URL = env('CELERY_BROKER_URL')
 CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND')
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": f"redis:/{env('DOMAIN_NAME')}/:6379/1",
+    }
+}
+CACHE_TIME = 60 * 10
