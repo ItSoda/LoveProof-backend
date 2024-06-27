@@ -1,5 +1,7 @@
 from typing import Optional
 
+from django.conf import settings
+from django.core.cache import cache
 from django.utils.decorators import method_decorator
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -249,9 +251,21 @@ class CheckerListAPIView(APIView):
     """
     filter_backends = [DjangoFilterBackend]
     filterset_class = CheckerFilter
+    permission_classes = [IsAuthenticated]
 
     @method_decorator(ratelimit(key='ip', rate='30/m', method='GET', block=True))
     def get(self, request):
+        """
+        В случае наличия кэшированных данных, возвращает кэшированный ответ.
+        Если данные не найдены или отфильтрованный queryset пуст, возвращает HTTP 204 No Content.
+        Иначе, возвращает список пользователей в формате JSON.
+        """
+        cache_key = f'checkers_list:{request.path}?{request.query_params.urlencode()}'
+        cached_data = cache.get(cache_key)
+
+        if cached_data:
+            return Response(cached_data, status=status.HTTP_200_OK)
+
         queryset = get_list_checkers()
 
         if any(request.query_params.values()):  # Проверка фильтрации в запросе
@@ -262,7 +276,10 @@ class CheckerListAPIView(APIView):
             filtered_queryset = queryset  # Если нет фильтров, используется исходный queryset
 
         serializer = CheckerListSerializer(filtered_queryset, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        data = serializer.data
+
+        cache.set(cache_key, data, timeout=settings.CACHE_TIME)
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class CheckerDetailAPIView(APIView):
@@ -273,12 +290,32 @@ class CheckerDetailAPIView(APIView):
     - 200 OK: Успешный запрос
     - 404 Not Found: Пользователь не найден
     """
+    permission_classes = [IsAuthenticated]
+
     @method_decorator(ratelimit(key='ip', rate='30/m', method='GET', block=True))
     def get(self, request, username: str):
-        user: Optional[User] = get_checker(username)
+        """
+        Получает детальную информацию о пользователе 'checker' по его имени пользователя.
 
+        В случае наличия кэшированных данных, возвращает кэшированный ответ.
+        Если пользователь не найден, возвращает HTTP 404 Not Found.
+        Иначе, возвращает детальную информацию о пользователе в формате JSON с HTTP 200 OK.
+
+        Аргументы:
+        - username (str): Имя пользователя проверяющего, которого нужно получить.
+        """
+        cache_key = f'checker_detail:{username}'
+        cached_data = cache.get(cache_key)
+
+        if cached_data:
+            return Response(cached_data, status=status.HTTP_200_OK)
+
+        user: Optional[User] = get_checker(username)
         if user:
             serializer = CheckerDetailSerializer(user)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            data = serializer.data
+
+            cache.set(cache_key, data, timeout=settings.CACHE_TIME)
+            return Response(data, status=status.HTTP_200_OK)
         else:
             return Response({"detail": "Пользователь не найден"}, status=status.HTTP_404_NOT_FOUND)
