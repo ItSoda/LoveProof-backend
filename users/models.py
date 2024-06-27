@@ -55,8 +55,8 @@ class User(AbstractUser):
         created = not self.pk 
         super().save(*args, **kwargs)
 
-        if created:
-            self._send_email_verification()
+        # if created:
+        #     self._send_email_verification()
 
     def _send_email_verification(self):
         """
