@@ -1,5 +1,6 @@
 from typing import Optional
 
+from django.utils.decorators import method_decorator
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.response import Response
@@ -8,6 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
 from django_filters.rest_framework import DjangoFilterBackend
+from django_ratelimit.decorators import ratelimit
 
 from users.models import User, EmailVerification
 from users.serializers import (
@@ -248,6 +250,7 @@ class CheckerListAPIView(APIView):
     filter_backends = [DjangoFilterBackend]
     filterset_class = CheckerFilter
 
+    @method_decorator(ratelimit(key='ip', rate='30/m', method='GET', block=True))
     def get(self, request):
         queryset = get_list_checkers()
 
@@ -270,6 +273,7 @@ class CheckerDetailAPIView(APIView):
     - 200 OK: Успешный запрос
     - 404 Not Found: Пользователь не найден
     """
+    @method_decorator(ratelimit(key='ip', rate='30/m', method='GET', block=True))
     def get(self, request, username: str):
         user: Optional[User] = get_checker(username)
 
