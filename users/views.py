@@ -21,6 +21,7 @@ from users.serializers import (
     )
 from users.services.views_service import get_list_checkers, get_checker
 from users.filters import CheckerFilter
+from users.pagination import CheckerPagination
 
 
 class UserRegistrationView(APIView):
@@ -252,6 +253,7 @@ class CheckerListAPIView(APIView):
     filter_backends = [DjangoFilterBackend]
     filterset_class = CheckerFilter
     permission_classes = [IsAuthenticated]
+    pagination_class = CheckerPagination
 
     @method_decorator(ratelimit(key='ip', rate='30/m', method='GET', block=True))
     def get(self, request):
@@ -275,9 +277,15 @@ class CheckerListAPIView(APIView):
         else:
             filtered_queryset = queryset  # Если нет фильтров, используется исходный queryset
 
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(filtered_queryset, request)
+
+        if page is not None:
+            serializer = CheckerListSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
         serializer = CheckerListSerializer(filtered_queryset, many=True)
         data = serializer.data
-
         cache.set(cache_key, data, timeout=settings.CACHE_TIME)
         return Response(data, status=status.HTTP_200_OK)
 
