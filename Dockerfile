@@ -1,10 +1,10 @@
-FROM python:3.10-alpine
+FROM python:3.10.0-alpine
 
 SHELL ["/bin/ash", "-c"]
 
 EXPOSE 8000
 
-RUN apk cache clean && apk update
+RUN apk update
 RUN apk add --no-cache bash curl && \
     apk add --no-cache rsync openssh-client sshpass && \
     apk add --no-cache build-base mariadb-dev && \
