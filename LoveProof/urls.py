@@ -10,5 +10,6 @@ urlpatterns = [
     path('api/login/', UserLoginAPIView.as_view(), name='login'),
     path('api/logout/', UserLogoutAPIView.as_view(), name='logout'),
     path('verify-email/', VerifyEmailAPIView.as_view(), name='email_verify'),
-    path('api/v1/users/', include('users.urls', namespace='users'))
+    path('api/v1/users/', include('users.urls', namespace='users')),
+    path('api/v1/community/', include('community.urls', namespace='community'))
 ]
