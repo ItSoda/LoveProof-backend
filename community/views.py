@@ -3,10 +3,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 
-from community.serializers import PostSerializer, PostDetailSerializer
+from community.serializers import PostSerializer, PostDetailSerializer, CommentSerializer
 from community.permissions import IsOwnerOrReadOnly, IsModeratorOrAdmin
 from community.services.views_service import (
     get_list_post, get_post,
+    get_list_comments
 )
 from community.pagination import PostPagination
 
@@ -32,7 +33,7 @@ class PostListCreateAPIView(APIView):
         - 201 Created: Пост успешно создан.
         - 400 Bad Request: Ошибка в запросе или неверные данные для создания поста.
     """
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
     pagination_class = PostPagination
 
     def get(self, request):
@@ -102,3 +103,43 @@ class PostDetailAPIView(APIView):
         self.check_object_permissions(request, post)
         post.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class CommentListCreateAPIView(APIView):
+    """
+    API view для списка комментариев под конкретным постом и создания новых комментариев.
+
+    Пользователь должен быть аутентифицирован для доступа к данным комментариев.
+
+    Параметры запроса:
+    {
+        "text": "Текст комментария"
+    }
+
+    HTTP коды ответа:
+    - GET:
+        - 200 OK: Возвращает список всех комментариев под конкретным постом.
+        - 400 Bad Request: Ошибка в запросе или неверные данные.
+    - POST:
+        - 201 Created: Комментарий успешно создан.
+        - 400 Bad Request: Ошибка в запросе или неверные данные для создания комментария.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, post_pk):
+        """
+        Возвращает список всех комментариев под конкретным постом.
+        """
+        comments = get_list_comments(post_pk)
+        serializer = CommentSerializer(comments, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, post_pk):
+        """
+        Создает новый комментарий под конкретным постом.
+        """
+        serializer = CommentSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user, post_id=post_pk)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
