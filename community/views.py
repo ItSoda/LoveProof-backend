@@ -7,7 +7,7 @@ from community.serializers import PostSerializer, PostDetailSerializer, CommentS
 from community.permissions import IsOwnerOrReadOnly, IsModeratorOrAdmin
 from community.services.views_service import (
     get_list_post, get_post,
-    get_list_comments
+    get_list_comments, get_comment
 )
 from community.pagination import PostPagination
 
@@ -143,3 +143,51 @@ class CommentListCreateAPIView(APIView):
             serializer.save(user=request.user, post_id=post_pk)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CommentDetailView(APIView):
+    """
+    API view для детального просмотра, обновления и удаления комментария.
+
+    Пользователь должен быть аутентифицирован и иметь права доступа для изменения данных комментария.
+
+    Параметры запроса:
+    - PUT
+        {
+            "text": "Новый текст комментария"
+        }
+
+    HTTP коды ответа:
+    - GET:
+        - 200 OK: Возвращает данные конкретного комментария.
+        - 404 Not Found: Комментарий не найден.
+    - PUT:
+        - 200 OK: Данные комментария успешно обновлены.
+        - 400 Bad Request: Ошибка в запросе или неверные данные для обновления комментария.
+        - 403 Forbidden: Пользователь не имеет прав доступа к изменению данных комментария.
+    - DELETE:
+        - 204 No Content: Комментарий успешно удален.
+        - 403 Forbidden: Пользователь не имеет прав доступа к удалению комментария.
+        - 404 Not Found: Комментарий не найден.
+    """
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly, IsModeratorOrAdmin]
+
+    def get(self, request, pk):
+        comment = get_comment(pk)
+        serializer = CommentSerializer(comment)
+        return Response(serializer.data)
+
+    def put(self, request, pk):
+        comment = get_comment(pk)
+        self.check_object_permissions(request, comment)
+        serializer = CommentSerializer(comment, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        comment = get_comment(pk)
+        self.check_object_permissions(request, comment)
+        comment.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
