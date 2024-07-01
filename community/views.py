@@ -7,7 +7,8 @@ from community.serializers import PostSerializer, PostDetailSerializer, CommentS
 from community.permissions import IsOwnerOrReadOnly, IsModeratorOrAdmin
 from community.services.views_service import (
     get_list_post, get_post,
-    get_list_comments, get_comment
+    get_list_comments, get_comment,
+    get_or_create_comment_like, get_or_create_post_like
 )
 from community.pagination import PostPagination
 
@@ -191,3 +192,57 @@ class CommentDetailView(APIView):
         self.check_object_permissions(request, comment)
         comment.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class LikePostAPIView(APIView):
+    """
+    API view для управления лайками к постам.
+
+    Пользователь должен быть аутентифицирован для ставки или удаления лайка к посту.
+
+    HTTP коды ответа:
+    - 200 OK: Лайк успешно поставлен или удален.
+    - 403 Forbidden: Пользователь не имеет прав доступа.
+    - 404 Not Found: Пост не найден.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, post_pk):
+        """
+        Устанавливает лайк или удаляет его с указанного поста.
+        """
+        post = get_post(post_pk)
+        user = request.user
+        like, created = get_or_create_post_like(user, post)
+        if not created:
+            like.delete()
+
+        serializer = PostDetailSerializer(post)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class LikeCommentAPIView(APIView):
+    """
+    API view для управления лайками к комментариям.
+
+    Пользователь должен быть аутентифицирован для ставки или удаления лайка к комментарию.
+
+    HTTP коды ответа:
+    - 200 OK: Лайк успешно поставлен или удален.
+    - 403 Forbidden: Пользователь не имеет прав доступа.
+    - 404 Not Found: Комментарий не найден.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, comment_pk):
+        """
+        Устанавливает лайк или удаляет его с указанного комментария.
+        """
+        comment = get_comment(comment_pk)
+        user = request.user
+        like, created = get_or_create_comment_like(user, comment)
+        if not created:
+            like.delete()
+
+        serializer = CommentSerializer(comment)
+        return Response(serializer.data, status=status.HTTP_200_OK)
