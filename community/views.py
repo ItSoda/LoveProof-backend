@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
+from django_filters.rest_framework import DjangoFilterBackend
 
 from community.serializers import PostSerializer, PostDetailSerializer, CommentSerializer
 from community.permissions import IsOwnerOrReadOnly, IsModeratorOrAdmin
@@ -11,6 +12,7 @@ from community.services.views_service import (
     get_or_create_comment_like, get_or_create_post_like
 )
 from community.pagination import PostPagination
+from community.filters import PostFilter, get_filtered_queryset
 
 
 class PostListCreateAPIView(APIView):
@@ -36,17 +38,23 @@ class PostListCreateAPIView(APIView):
     """
     # permission_classes = [IsAuthenticated]
     pagination_class = PostPagination
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = PostFilter
 
     def get(self, request):
-        posts = get_list_post()
+        queryset = get_list_post()
+
+        filtered_queryset = get_filtered_queryset(queryset, request.query_params, self.filterset_class)
+        if filtered_queryset is None:
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
         paginator = self.pagination_class()
-        page = paginator.paginate_queryset(posts, request)
+        page = paginator.paginate_queryset(filtered_queryset, request)
         if page is not None:
             serializer = PostSerializer(page, many=True)
             return paginator.get_paginated_response(serializer.data)
 
-        serializer = PostSerializer(posts, many=True)
+        serializer = PostSerializer(filtered_queryset, many=True)
         return Response(serializer.data)
 
     def post(self, request):
