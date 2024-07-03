@@ -3,7 +3,7 @@ from typing import Optional
 from django.db.models import Count, QuerySet
 from django.shortcuts import get_object_or_404
 
-from community.models import Post, Comment, Like
+from community.models import Post, Comment, Like, Report
 from users.models import User
 
 
@@ -133,3 +133,50 @@ def get_or_create_post_like(user: User, post: Post) -> Like:
         Like: Объект Like, созданный или найденный.
     """
     return Like.objects.get_or_create(user=user, post=post)
+
+def get_list_reports() -> QuerySet[Report]:
+    """
+    Возвращает список всех жалоб.
+
+    Возвращает:
+        QuerySet: Список объектов Report.
+    """
+    return Report.objects.select_related(
+        'user',
+        'post',
+        'comment'
+    ).only(
+        'user__id',
+        'post__id',
+        'comment__id',
+        'text',
+        'status',
+        'created_at'
+    )
+
+def get_report(pk: int) -> Optional[Report]:
+    """
+    Возвращает конкретную жалобу по его id
+
+    Параметры:
+        pk (int): id жалобы.
+
+    Возвращает:
+        Report: Объект Report, если найден, в противном случае None.
+        None: Если комментарий не найден.
+    """
+    return get_object_or_404(
+        Report.objects.select_related(
+            'user',
+            'post',
+            'comment'
+        ).only(
+            'user__id',
+            'post__id',
+            'comment__id',
+            'text',
+            'status',
+            'created_at'
+        ),
+        pk=pk
+    )
