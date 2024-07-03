@@ -119,3 +119,14 @@ class PostReportCreateSerializer(serializers.ModelSerializer):
         if 'post' not in data:
             raise serializers.ValidationError('Post must be specified.')
         return data
+
+
+class ReportCreateCommentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Report
+        fields = ('comment', 'text')
+
+    def validate(self, data):
+        if 'comment' not in data:
+            raise serializers.ValidationError('Comment must be specified.')
+        return data
