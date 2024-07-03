@@ -277,3 +277,33 @@ class ReportListAPIView(APIView):
         reports = get_list_reports()
         serializer = ReportSerializer(reports, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ReportDetailAPIView(APIView):
+    """
+    API view для детального просмотра и обновления жалобы.
+
+    Пользователь должен быть аутентифицирован как модератор или администратор.
+
+    HTTP коды ответа:
+    - GET:
+        - 200 OK: Возвращает данные конкретной жалобы.
+        - 404 Not Found: Жалоба не найдена.
+    - PUT:
+        - 200 OK: Данные жалобы успешно обновлены.
+        - 400 Bad Request: Ошибка в запросе или неверные данные для обновления жалобы.
+    """
+    permission_classes = [IsAuthenticated, IsModeratorOrAdmin]
+
+    def get(self, request, pk):
+        report = get_report(pk)
+        serializer = ReportDetailSerializer(report)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def put(self, request, pk):
+        report = get_report(pk)
+        serializer = ReportDetailSerializer(report, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
