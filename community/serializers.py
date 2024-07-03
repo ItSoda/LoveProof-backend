@@ -101,3 +101,10 @@ class ReportSerializer(serializers.ModelSerializer):
         model = Report
         fields = ('id', 'user', 'post', 'comment', 'status', 'created_at')
         read_only_fields = ('id', 'user', 'status', 'created_at')
+
+
+class ReportDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Report
+        fields = ('id', 'user', 'post', 'comment', 'text', 'status', 'created_at')
+        read_only_fields = ('id', 'user', 'created_at', 'text')
