@@ -114,10 +114,6 @@ class Category(models.Model):
 
 
 class Report(models.Model):
-    REPORT_TYPES_CHOICES= (
-        ('post', 'Пост'),
-        ('comment', 'Комментарий'),
-    )
     STATUS_CHOICES = (
         ('new', 'Новая'),
         ('pending', 'На рассмотрении'),
@@ -136,37 +132,34 @@ class Report(models.Model):
         null=True,
         verbose_name='Пользователь'
     )
-    reported_type = models.CharField(
-        max_length=10,
-        choices=REPORT_TYPES_CHOICES,
-        verbose_name='Тип жалобы'
-    )
-    reported_post = models.ForeignKey(
-        Post,
+    post = models.ForeignKey(
+        to=Post,
         on_delete=models.CASCADE,
         related_name='reports',
-        blank=True,
         null=True,
+        blank=True,
         verbose_name='Пост'
     )
-    reported_comment = models.ForeignKey(
-        Comment,
+    comment = models.ForeignKey(
+        to=Comment,
         on_delete=models.CASCADE,
         related_name='reports',
-        blank=True, null=True,
+        null=True,
+        blank=True,
         verbose_name='Комментарий'
     )
-    text = models.TextField(verbose_name='Текст жалобы')
+    text = models.TextField(max_length=700, blank=False, verbose_name='Текст жалобы')
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
         default='new',
         verbose_name='Статус'
     )
+    created_at = models.DateTimeField(auto_now=True, verbose_name='Дата создания')
 
     class Meta:
         verbose_name = 'Жалоба'
         verbose_name_plural = 'Жалобы'
 
     def __str__(self):
-        return f'Сomplaint from {self.user.username} about the {self.reported_type}'
+        return f'Сomplaint from {self.user.username} about the {self.post or self.comment}'
