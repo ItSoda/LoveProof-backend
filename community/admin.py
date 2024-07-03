@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from community.models import Post, Comment, Like, Category
+from community.models import Post, Comment, Like, Category, Report
 
 
 @admin.register(Post)
@@ -33,3 +33,22 @@ class LikeAdmin(admin.ModelAdmin):
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ('id', 'title')
     search_fields = ('title',)
+
+
+@admin.register(Report)
+class ReportAdmin(admin.ModelAdmin):
+    list_display = ['id', 'user', 'post', 'comment', 'status', 'created_at']
+    list_filter = ['status', 'created_at']
+    search_fields = ['user__username', 'post__title', 'comment__text', 'text']
+    list_per_page = 20
+    readonly_fields = ['created_at']
+
+    fieldsets = (
+        ('Основная информация', {
+            'fields': ('user', 'post', 'comment', 'text', 'status')
+        }),
+        ('Временные метки', {
+            'fields': ('created_at',),
+            'classes': ('collapse',),
+        }),
+    )
