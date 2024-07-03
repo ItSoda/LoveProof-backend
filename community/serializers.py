@@ -108,3 +108,14 @@ class ReportDetailSerializer(serializers.ModelSerializer):
         model = Report
         fields = ('id', 'user', 'post', 'comment', 'text', 'status', 'created_at')
         read_only_fields = ('id', 'user', 'created_at', 'text')
+
+
+class PostReportCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Report
+        fields = ('post', 'text')
+
+    def validate(self, data):
+        if 'post' not in data:
+            raise serializers.ValidationError('Post must be specified.')
+        return data
