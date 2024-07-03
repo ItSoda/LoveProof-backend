@@ -5,7 +5,7 @@ from community.views import (
     CommentListCreateAPIView, CommentDetailView,
     LikePostAPIView, LikeCommentAPIView,
     ReportListAPIView, ReportDetailAPIView,
-    PostReportCreateAPIView
+    PostReportCreateAPIView, CommentReportCreateAPIView
 )
 
 
@@ -21,4 +21,5 @@ urlpatterns = [
     path('reports/', ReportListAPIView.as_view(), name='report_list'),
     path('reports/<int:pk>/', ReportDetailAPIView.as_view(), name='report_detail'),
     path('reports/posts/', PostReportCreateAPIView.as_view(), name='report_create_post'),
+    path('reports/comments/', CommentReportCreateAPIView.as_view(), name='report_create_comment'),
 ]
