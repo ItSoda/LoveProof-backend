@@ -7,8 +7,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from community.serializers import (
     PostSerializer, PostDetailSerializer,
     CommentSerializer, ReportSerializer,
-    ReportDetailSerializer, PostReportCreateSerializer,
-    ReportCreateCommentSerializer
+    ReportDetailSerializer, PostReportCreateSerializer
 )
 from community.permissions import IsOwnerOrReadOnly, IsModeratorOrAdmin
 from community.services.views_service import (
@@ -306,4 +305,31 @@ class ReportDetailAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PostReportCreateAPIView(APIView):
+    """
+    API view для создания жалобы на пост.
+
+    Пользователь должен быть аутентифицирован для создания жалобы.
+
+    Параметры запроса:
+    {
+        "post": "id поста, на который подается жалоба",
+        "text": "Текст жалобы"
+    }
+
+    HTTP коды ответа:
+    - 201 Created: Жалоба на пост успешно создана.
+    - 400 Bad Request: Ошибка в запросе или неверные данные для создания жалобы.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = PostReportCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            report = serializer.save(user=request.user)
+            serialized_report = ReportSerializer(report)
+            return Response(serialized_report.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
