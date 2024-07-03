@@ -4,12 +4,18 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 
-from community.serializers import PostSerializer, PostDetailSerializer, CommentSerializer
+from community.serializers import (
+    PostSerializer, PostDetailSerializer,
+    CommentSerializer, ReportSerializer,
+    ReportDetailSerializer, PostReportCreateSerializer,
+    ReportCreateCommentSerializer
+)
 from community.permissions import IsOwnerOrReadOnly, IsModeratorOrAdmin
 from community.services.views_service import (
     get_list_post, get_post,
     get_list_comments, get_comment,
-    get_or_create_comment_like, get_or_create_post_like
+    get_or_create_comment_like, get_or_create_post_like,
+    get_list_reports, get_report
 )
 from community.pagination import PostPagination
 from community.filters import PostFilter, get_filtered_queryset
@@ -36,7 +42,7 @@ class PostListCreateAPIView(APIView):
         - 201 Created: Пост успешно создан.
         - 400 Bad Request: Ошибка в запросе или неверные данные для создания поста.
     """
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     pagination_class = PostPagination
     filter_backends = [DjangoFilterBackend]
     filterset_class = PostFilter
@@ -253,4 +259,21 @@ class LikeCommentAPIView(APIView):
             like.delete()
 
         serializer = CommentSerializer(comment)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ReportListAPIView(APIView):
+    """
+    API view для получения списка жалоб.
+
+    Пользователь должен быть аутентифицирован как модератор или администратор.
+
+    HTTP коды ответа:
+        - 200 OK: Возвращает список всех жалоб.
+    """
+    permission_classes = [IsAuthenticated, IsModeratorOrAdmin]
+
+    def get(self, request):
+        reports = get_list_reports()
+        serializer = ReportSerializer(reports, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
