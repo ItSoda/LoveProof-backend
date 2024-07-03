@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from community.models import Post, Comment, Category
+from community.models import Post, Comment, Category, Report
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -94,3 +94,10 @@ class PostDetailSerializer(serializers.ModelSerializer):
 
     def get_likes_count(self, obj):
         return obj.likes.count()
+
+
+class ReportSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Report
+        fields = ('id', 'user', 'post', 'comment', 'status', 'created_at')
+        read_only_fields = ('id', 'user', 'status', 'created_at')
