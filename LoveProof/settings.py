@@ -74,6 +74,12 @@ if DEBUG:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',  # Используется InMemory в примере
+        }
+    }
 else:
     # Для продакшн
     DATABASES = {
@@ -84,6 +90,19 @@ else:
             'PASSWORD': env('DATABASES_PASSWORD'),
             'HOST': env('DATABASES_HOST'),
             'PORT': env('DATABASES_PORT'),
+        }
+    }
+
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.DatabaseChannelLayer',
+            'CONFIG': {
+                'ENGINE': 'django.db.backends.postgresql',  # Используем PostgreSQL
+                'NAME': env('DATABASES_NAME'),
+                'USER': env('DATABASES_USER'),
+                'PASSWORD': env('DATABASES_PASSWORD'),
+                'HOST': env('DATABASES_HOST'),
+            },
         }
     }
 
