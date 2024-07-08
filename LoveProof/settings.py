@@ -20,6 +20,7 @@ ALLOWED_HOSTS = env.list('ALLOWED_HOSTS')
 DOMAIN_NAME = env('DOMAIN_NAME')
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -29,6 +30,7 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
+    'chat.apps.ChatConfig',
 
     'users.apps.UsersConfig',
 ]
@@ -62,6 +64,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'LoveProof.wsgi.application'
+ASGI_APPLICATION = 'LoveProof.asgi.application'
 
 if DEBUG:
     # Для разработки
