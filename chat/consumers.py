@@ -31,6 +31,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.chat_id = self.scope['url_route']['kwargs']['chat_id']
         self.chat_group_name = f"chat_{self.chat_id}" 
 
+        if self.scope['user'].is_anonymous:
+            await self.close()
+
         await self.channel_layer.group_add(
             self.chat_group_name,
             self.channel_name
